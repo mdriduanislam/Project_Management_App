@@ -1,0 +1,108 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  owner
+  admin
+  member
+  viewer
+}
+
+enum TaskStatus {
+  todo
+  in_progress
+  done
+}
+
+enum TaskPriority {
+  low
+  medium
+  high
+}
+
+enum ProjectStatus {
+  active
+  archived
+}
+
+model Organization {
+  id          String       @id @default(cuid())
+  name        String
+  slug        String       @unique
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  memberships Membership[]
+  projects    Project[]
+  invitations Invitation[]
+
+  @@index([slug])
+}
+
+model Membership {
+  id             String       @id @default(cuid())
+  clerkUserId    String
+  orgId          String
+  role           Role         @default(member)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  organization   Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  assignedTasks  Task[]       @relation("TaskAssignee")
+
+  @@unique([clerkUserId, orgId])
+  @@index([clerkUserId])
+  @@index([orgId])
+}
+
+model Project {
+  id           String        @id @default(cuid())
+  orgId        String
+  name         String
+  description  String?
+  status       ProjectStatus @default(active)
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  organization Organization  @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  tasks        Task[]
+
+  @@index([orgId])
+}
+
+model Task {
+  id          String       @id @default(cuid())
+  orgId       String
+  projectId   String
+  title       String
+  description String?
+  status      TaskStatus   @default(todo)
+  priority    TaskPriority @default(medium)
+  dueDate     DateTime?
+  assigneeId  String?
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  project     Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  assignee    Membership?  @relation("TaskAssignee", fields: [assigneeId], references: [id])
+
+  @@index([orgId])
+  @@index([projectId])
+  @@index([assigneeId])
+}
+
+model Invitation {
+  id           String       @id @default(cuid())
+  orgId        String
+  email        String
+  role         Role         @default(member)
+  token        String       @unique @default(cuid())
+  expiresAt    DateTime
+  createdAt    DateTime     @default(now())
+  organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+
+  @@index([orgId])
+  @@index([token])
+  @@index([email])
+}
