@@ -12,19 +12,20 @@ const updateProjectSchema = z.object({
 
 export async function PATCH(
   req: NextRequest,
-  { params }: { params: { orgId: string; projectId: string } }
+  { params }: { params: Promise<{ orgId: string; projectId: string }> }
 ) {
   try {
+    const { orgId, projectId } = await params;
     const { userId } = await auth();
     if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-    await requireOrgMembership(params.orgId, "member");
+    await requireOrgMembership(orgId, "member");
 
     const body = await req.json();
     const data = updateProjectSchema.parse(body);
 
     const project = await prisma.project.update({
-      where: { id: params.projectId, orgId: params.orgId },
+      where: { id: projectId, orgId },
       data,
     });
 
@@ -39,16 +40,17 @@ export async function PATCH(
 
 export async function DELETE(
   req: NextRequest,
-  { params }: { params: { orgId: string; projectId: string } }
+  { params }: { params: Promise<{ orgId: string; projectId: string }> }
 ) {
   try {
+    const { orgId, projectId } = await params;
     const { userId } = await auth();
     if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-    await requireOrgMembership(params.orgId, "admin");
+    await requireOrgMembership(orgId, "admin");
 
     await prisma.project.delete({
-      where: { id: params.projectId, orgId: params.orgId },
+      where: { id: projectId, orgId },
     });
 
     return NextResponse.json({ success: true });

@@ -6,14 +6,15 @@ import { TasksClient } from "@/components/tasks/tasks-client";
 export default async function TasksPage({
   params,
 }: {
-  params: { orgId: string };
+  params: Promise<{ orgId: string }>;
 }) {
+  const { orgId } = await params;
   const { userId } = await auth();
   if (!userId) redirect("/sign-in");
 
   const [tasks, projects, members, membership] = await Promise.all([
     prisma.task.findMany({
-      where: { orgId: params.orgId },
+      where: { orgId },
       include: {
         project: { select: { name: true } },
         assignee: { select: { id: true, clerkUserId: true } },
@@ -21,15 +22,15 @@ export default async function TasksPage({
       orderBy: { createdAt: "desc" },
     }),
     prisma.project.findMany({
-      where: { orgId: params.orgId, status: "active" },
+      where: { orgId, status: "active" },
       select: { id: true, name: true },
     }),
     prisma.membership.findMany({
-      where: { orgId: params.orgId },
+      where: { orgId },
       select: { id: true, clerkUserId: true, role: true },
     }),
     prisma.membership.findUnique({
-      where: { clerkUserId_orgId: { clerkUserId: userId, orgId: params.orgId } },
+      where: { clerkUserId_orgId: { clerkUserId: userId, orgId } },
     }),
   ]);
 
@@ -53,7 +54,7 @@ export default async function TasksPage({
       tasks={taskData}
       projects={projects}
       members={members}
-      orgId={params.orgId}
+      orgId={orgId}
       userRole={membership.role}
     />
   );

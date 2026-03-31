@@ -11,13 +11,14 @@ const createInviteSchema = z.object({
 
 export async function POST(
   req: NextRequest,
-  { params }: { params: { orgId: string } }
+  { params }: { params: Promise<{ orgId: string }> }
 ) {
   try {
+    const { orgId } = await params;
     const { userId } = await auth();
     if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-    await requireOrgMembership(params.orgId, "admin");
+    await requireOrgMembership(orgId, "admin");
 
     const body = await req.json();
     const { email, role } = createInviteSchema.parse(body);
@@ -26,7 +27,7 @@ export async function POST(
     expiresAt.setDate(expiresAt.getDate() + 7);
 
     const invitation = await prisma.invitation.create({
-      data: { orgId: params.orgId, email, role, expiresAt },
+      data: { orgId, email, role, expiresAt },
     });
 
     const inviteUrl = `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/invite/${invitation.token}`;
@@ -42,16 +43,17 @@ export async function POST(
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: { orgId: string } }
+  { params }: { params: Promise<{ orgId: string }> }
 ) {
   try {
+    const { orgId } = await params;
     const { userId } = await auth();
     if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-    await requireOrgMembership(params.orgId, "admin");
+    await requireOrgMembership(orgId, "admin");
 
     const invitations = await prisma.invitation.findMany({
-      where: { orgId: params.orgId },
+      where: { orgId },
       orderBy: { createdAt: "desc" },
     });
 

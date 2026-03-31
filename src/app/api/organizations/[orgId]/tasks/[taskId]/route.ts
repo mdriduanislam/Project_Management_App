@@ -15,19 +15,20 @@ const updateTaskSchema = z.object({
 
 export async function PATCH(
   req: NextRequest,
-  { params }: { params: { orgId: string; taskId: string } }
+  { params }: { params: Promise<{ orgId: string; taskId: string }> }
 ) {
   try {
+    const { orgId, taskId } = await params;
     const { userId } = await auth();
     if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-    await requireOrgMembership(params.orgId, "member");
+    await requireOrgMembership(orgId, "member");
 
     const body = await req.json();
     const data = updateTaskSchema.parse(body);
 
     const task = await prisma.task.update({
-      where: { id: params.taskId, orgId: params.orgId },
+      where: { id: taskId, orgId },
       data: {
         ...data,
         dueDate: data.dueDate !== undefined ? (data.dueDate ? new Date(data.dueDate) : null) : undefined,
@@ -45,16 +46,17 @@ export async function PATCH(
 
 export async function DELETE(
   req: NextRequest,
-  { params }: { params: { orgId: string; taskId: string } }
+  { params }: { params: Promise<{ orgId: string; taskId: string }> }
 ) {
   try {
+    const { orgId, taskId } = await params;
     const { userId } = await auth();
     if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-    await requireOrgMembership(params.orgId, "member");
+    await requireOrgMembership(orgId, "member");
 
     await prisma.task.delete({
-      where: { id: params.taskId, orgId: params.orgId },
+      where: { id: taskId, orgId },
     });
 
     return NextResponse.json({ success: true });

@@ -6,14 +6,15 @@ import { ProjectsClient } from "@/components/projects/projects-client";
 export default async function ProjectsPage({
   params,
 }: {
-  params: { orgId: string };
+  params: Promise<{ orgId: string }>;
 }) {
+  const { orgId } = await params;
   const { userId } = await auth();
   if (!userId) redirect("/sign-in");
 
   const [projects, membership] = await Promise.all([
     prisma.project.findMany({
-      where: { orgId: params.orgId },
+      where: { orgId },
       include: {
         _count: { select: { tasks: true } },
         tasks: { select: { status: true } },
@@ -21,7 +22,7 @@ export default async function ProjectsPage({
       orderBy: { createdAt: "desc" },
     }),
     prisma.membership.findUnique({
-      where: { clerkUserId_orgId: { clerkUserId: userId, orgId: params.orgId } },
+      where: { clerkUserId_orgId: { clerkUserId: userId, orgId } },
     }),
   ]);
 
@@ -40,7 +41,7 @@ export default async function ProjectsPage({
   return (
     <ProjectsClient
       projects={projectData}
-      orgId={params.orgId}
+      orgId={orgId}
       userRole={membership.role}
     />
   );

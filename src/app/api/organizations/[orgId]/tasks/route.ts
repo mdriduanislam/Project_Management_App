@@ -16,20 +16,21 @@ const createTaskSchema = z.object({
 
 export async function POST(
   req: NextRequest,
-  { params }: { params: { orgId: string } }
+  { params }: { params: Promise<{ orgId: string }> }
 ) {
   try {
+    const { orgId } = await params;
     const { userId } = await auth();
     if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-    await requireOrgMembership(params.orgId, "member");
+    await requireOrgMembership(orgId, "member");
 
     const body = await req.json();
     const data = createTaskSchema.parse(body);
 
     const task = await prisma.task.create({
       data: {
-        orgId: params.orgId,
+        orgId,
         projectId: data.projectId,
         title: data.title,
         description: data.description,

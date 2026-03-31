@@ -5,12 +5,13 @@ import { AcceptInviteClient } from "@/components/invite/accept-invite-client";
 export default async function InvitePage({
   params,
 }: {
-  params: { token: string };
+  params: Promise<{ token: string }>;
 }) {
+  const { token } = await params;
   const { userId } = await auth();
 
   const invitation = await prisma.invitation.findUnique({
-    where: { token: params.token },
+    where: { token },
     include: { organization: true },
   });
 
@@ -38,7 +39,7 @@ export default async function InvitePage({
 
   return (
     <AcceptInviteClient
-      token={params.token}
+      token={token}
       orgName={invitation.organization.name}
       email={invitation.email}
       role={invitation.role}

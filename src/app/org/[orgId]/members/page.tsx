@@ -6,18 +6,19 @@ import { MembersClient } from "@/components/members/members-client";
 export default async function MembersPage({
   params,
 }: {
-  params: { orgId: string };
+  params: Promise<{ orgId: string }>;
 }) {
+  const { orgId } = await params;
   const { userId } = await auth();
   if (!userId) redirect("/sign-in");
 
   const [members, membership] = await Promise.all([
     prisma.membership.findMany({
-      where: { orgId: params.orgId },
+      where: { orgId },
       orderBy: { createdAt: "asc" },
     }),
     prisma.membership.findUnique({
-      where: { clerkUserId_orgId: { clerkUserId: userId, orgId: params.orgId } },
+      where: { clerkUserId_orgId: { clerkUserId: userId, orgId } },
     }),
   ]);
 
@@ -32,7 +33,7 @@ export default async function MembersPage({
         createdAt: m.createdAt.toISOString(),
         isCurrentUser: m.clerkUserId === userId,
       }))}
-      orgId={params.orgId}
+      orgId={orgId}
       userRole={membership.role}
     />
   );

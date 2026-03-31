@@ -9,13 +9,14 @@ export default async function OrgLayout({
   params,
 }: {
   children: React.ReactNode;
-  params: { orgId: string };
+  params: Promise<{ orgId: string }>;
 }) {
+  const { orgId } = await params;
   const { userId } = await auth();
   if (!userId) redirect("/sign-in");
 
   const membership = await prisma.membership.findUnique({
-    where: { clerkUserId_orgId: { clerkUserId: userId, orgId: params.orgId } },
+    where: { clerkUserId_orgId: { clerkUserId: userId, orgId } },
     include: { organization: true },
   });
 
@@ -23,7 +24,7 @@ export default async function OrgLayout({
 
   return (
     <div className="flex h-screen bg-gray-50">
-      <Sidebar orgId={params.orgId} orgName={membership.organization.name} />
+      <Sidebar orgId={orgId} orgName={membership.organization.name} />
       <div className="flex-1 flex flex-col overflow-hidden">
         <Header orgName={membership.organization.name} userRole={membership.role} />
         <main className="flex-1 overflow-auto p-6">{children}</main>

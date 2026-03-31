@@ -8,8 +8,9 @@ import { ProjectProgressList } from "@/components/dashboard/project-progress-lis
 export default async function OrgDashboardPage({
   params,
 }: {
-  params: { orgId: string };
+  params: Promise<{ orgId: string }>;
 }) {
+  const { orgId } = await params;
   const { userId } = await auth();
   if (!userId) redirect("/sign-in");
 
@@ -19,17 +20,17 @@ export default async function OrgDashboardPage({
 
   const [totalTasks, completedTasks, overdueTasks, projects, recentTasks] =
     await Promise.all([
-      prisma.task.count({ where: { orgId: params.orgId } }),
-      prisma.task.count({ where: { orgId: params.orgId, status: "done" } }),
+      prisma.task.count({ where: { orgId } }),
+      prisma.task.count({ where: { orgId, status: "done" } }),
       prisma.task.count({
         where: {
-          orgId: params.orgId,
+          orgId,
           status: { not: "done" },
           dueDate: { lt: now },
         },
       }),
       prisma.project.findMany({
-        where: { orgId: params.orgId, status: "active" },
+        where: { orgId, status: "active" },
         include: {
           _count: { select: { tasks: true } },
           tasks: { select: { status: true } },
@@ -39,7 +40,7 @@ export default async function OrgDashboardPage({
       }),
       prisma.task.findMany({
         where: {
-          orgId: params.orgId,
+          orgId,
           status: "done",
           updatedAt: { gte: sevenDaysAgo },
         },
@@ -82,7 +83,7 @@ export default async function OrgDashboardPage({
       />
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <TasksChart data={chartData} />
-        <ProjectProgressList projects={projectProgress} orgId={params.orgId} />
+        <ProjectProgressList projects={projectProgress} orgId={orgId} />
       </div>
     </div>
   );

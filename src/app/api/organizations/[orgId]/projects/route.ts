@@ -11,19 +11,20 @@ const createProjectSchema = z.object({
 
 export async function POST(
   req: NextRequest,
-  { params }: { params: { orgId: string } }
+  { params }: { params: Promise<{ orgId: string }> }
 ) {
   try {
+    const { orgId } = await params;
     const { userId } = await auth();
     if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-    await requireOrgMembership(params.orgId, "member");
+    await requireOrgMembership(orgId, "member");
 
     const body = await req.json();
     const { name, description } = createProjectSchema.parse(body);
 
     const project = await prisma.project.create({
-      data: { orgId: params.orgId, name, description },
+      data: { orgId, name, description },
     });
 
     return NextResponse.json(project);
